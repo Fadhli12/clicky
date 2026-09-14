@@ -14,6 +14,8 @@ enum ClickyAnalytics {
     // MARK: - Setup
 
     static func configure() {
+        // PostHog disabled to prevent timeout crashes on strict networks
+        return;
         let config = PostHogConfig(
             apiKey: "phc_xcQPygmhTMzzYh8wNW92CCwoXmnzqyChAixh8zgpqC3C",
             host: "https://us.i.posthog.com"

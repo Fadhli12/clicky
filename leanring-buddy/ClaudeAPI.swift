@@ -41,6 +41,7 @@ class ClaudeAPI {
         request.httpMethod = "POST"
         request.timeoutInterval = 120
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer sk-3f480b5172cb4e50-113328-61c7d171ebfc", forHTTPHeaderField: "Authorization")
         return request
     }
 
@@ -112,6 +113,8 @@ class ClaudeAPI {
         // Build messages array
         var messages: [[String: Any]] = []
 
+        messages.append(["role": "system", "content": systemPrompt])
+
         for (userPlaceholder, assistantResponse) in conversationHistory {
             messages.append(["role": "user", "content": userPlaceholder])
             messages.append(["role": "assistant", "content": assistantResponse])
@@ -120,12 +123,12 @@ class ClaudeAPI {
         // Build current message with all labeled images + prompt
         var contentBlocks: [[String: Any]] = []
         for image in images {
+            let mediaType = detectImageMediaType(for: image.data)
+            let base64 = image.data.base64EncodedString()
             contentBlocks.append([
-                "type": "image",
-                "source": [
-                    "type": "base64",
-                    "media_type": detectImageMediaType(for: image.data),
-                    "data": image.data.base64EncodedString()
+                "type": "image_url",
+                "image_url": [
+                    "url": "data:\(mediaType);base64,\(base64)"
                 ]
             ])
             contentBlocks.append([
@@ -143,7 +146,6 @@ class ClaudeAPI {
             "model": model,
             "max_tokens": 1024,
             "stream": true,
-            "system": systemPrompt,
             "messages": messages
         ]
 
@@ -190,21 +192,17 @@ class ClaudeAPI {
 
             guard let jsonData = jsonString.data(using: .utf8),
                   let eventPayload = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-                  let eventType = eventPayload["type"] as? String else {
+                  let choices = eventPayload["choices"] as? [[String: Any]],
+                  let firstChoice = choices.first,
+                  let delta = firstChoice["delta"] as? [String: Any],
+                  let textChunk = delta["content"] as? String else {
                 continue
             }
 
-            // We care about content_block_delta events that contain text chunks
-            if eventType == "content_block_delta",
-               let delta = eventPayload["delta"] as? [String: Any],
-               let deltaType = delta["type"] as? String,
-               deltaType == "text_delta",
-               let textChunk = delta["text"] as? String {
-                accumulatedResponseText += textChunk
-                // Send the accumulated text so far to the UI for progressive rendering
-                let currentAccumulatedText = accumulatedResponseText
-                await onTextChunk(currentAccumulatedText)
-            }
+            accumulatedResponseText += textChunk
+            // Send the accumulated text so far to the UI for progressive rendering
+            let currentAccumulatedText = accumulatedResponseText
+            await onTextChunk(currentAccumulatedText)
         }
 
         let duration = Date().timeIntervalSince(startTime)
@@ -223,6 +221,9 @@ class ClaudeAPI {
         var request = makeAPIRequest()
 
         var messages: [[String: Any]] = []
+
+        messages.append(["role": "system", "content": systemPrompt])
+
         for (userPlaceholder, assistantResponse) in conversationHistory {
             messages.append(["role": "user", "content": userPlaceholder])
             messages.append(["role": "assistant", "content": assistantResponse])
@@ -231,12 +232,12 @@ class ClaudeAPI {
         // Build current message with all labeled images + prompt
         var contentBlocks: [[String: Any]] = []
         for image in images {
+            let mediaType = detectImageMediaType(for: image.data)
+            let base64 = image.data.base64EncodedString()
             contentBlocks.append([
-                "type": "image",
-                "source": [
-                    "type": "base64",
-                    "media_type": detectImageMediaType(for: image.data),
-                    "data": image.data.base64EncodedString()
+                "type": "image_url",
+                "image_url": [
+                    "url": "data:\(mediaType);base64,\(base64)"
                 ]
             ])
             contentBlocks.append([
@@ -253,7 +254,6 @@ class ClaudeAPI {
         let body: [String: Any] = [
             "model": model,
             "max_tokens": 256,
-            "system": systemPrompt,
             "messages": messages
         ]
 
@@ -275,13 +275,14 @@ class ClaudeAPI {
         }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let content = json?["content"] as? [[String: Any]],
-              let textBlock = content.first(where: { ($0["type"] as? String) == "text" }),
-              let text = textBlock["text"] as? String else {
+        guard let choices = json?["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let text = message["content"] as? String else {
             throw NSError(
                 domain: "ClaudeAPI",
                 code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid response format"]
+                userInfo: [NSLocalizedDescriptionKey: "Failed to parse API response structure"]
             )
         }
 

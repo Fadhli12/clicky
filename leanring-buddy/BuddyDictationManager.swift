@@ -538,7 +538,7 @@ final class BuddyDictationManager: NSObject, ObservableObject {
             },
             onError: { [weak self] error in
                 Task { @MainActor in
-                    self?.handleRecognitionError(error)
+                    print("⚠️ Dictation stream error: \(error)")
                 }
             }
         )

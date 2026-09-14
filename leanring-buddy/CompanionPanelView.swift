@@ -13,6 +13,8 @@ import SwiftUI
 struct CompanionPanelView: View {
     @ObservedObject var companionManager: CompanionManager
     @State private var emailInput: String = ""
+    @State private var textQuery: String = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -30,39 +32,6 @@ struct CompanionPanelView: View {
                     .frame(height: 12)
 
                 modelPickerRow
-                    .padding(.horizontal, 16)
-            }
-
-            if !companionManager.allPermissionsGranted {
-                Spacer()
-                    .frame(height: 16)
-
-                settingsSection
-                    .padding(.horizontal, 16)
-            }
-
-            if !companionManager.hasCompletedOnboarding && companionManager.allPermissionsGranted {
-                Spacer()
-                    .frame(height: 16)
-
-                startButton
-                    .padding(.horizontal, 16)
-            }
-
-            // Show Clicky toggle — hidden for now
-            // if companionManager.hasCompletedOnboarding && companionManager.allPermissionsGranted {
-            //     Spacer()
-            //         .frame(height: 16)
-            //
-            //     showClickyCursorToggleRow
-            //         .padding(.horizontal, 16)
-            // }
-
-            if companionManager.hasCompletedOnboarding && companionManager.allPermissionsGranted {
-                Spacer()
-                    .frame(height: 16)
-
-                dmFarzaButton
                     .padding(.horizontal, 16)
             }
 
@@ -127,10 +96,60 @@ struct CompanionPanelView: View {
     @ViewBuilder
     private var permissionsCopySection: some View {
         if companionManager.hasCompletedOnboarding && companionManager.allPermissionsGranted {
-            Text("Hold Control+Option to talk.")
+            Text("Type your question below. Clicky sees your screen.")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(DS.Colors.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer().frame(height: 8)
+
+            HStack(spacing: 8) {
+                TextField("Ask Clicky...", text: $textQuery, onCommit: {
+                    companionManager.sendTextQuery(textQuery)
+                    textQuery = ""
+                })
+                .focused($isTextFieldFocused)
+                .textFieldStyle(PlainTextFieldStyle())
+                .font(.system(size: 13))
+                .foregroundColor(DS.Colors.textPrimary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: DS.CornerRadius.medium, style: .continuous)
+                        .fill(DS.Colors.surface2)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DS.CornerRadius.medium, style: .continuous)
+                                .stroke(DS.Colors.borderSubtle, lineWidth: 1)
+                        )
+                )
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isTextFieldFocused = true
+                    }
+                }
+
+                Button(action: {
+                    companionManager.sendTextQuery(textQuery)
+                    textQuery = ""
+                }) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(textQuery.isEmpty ? DS.Colors.textTertiary : DS.Colors.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(textQuery.isEmpty)
+            }
+
+            if companionManager.voiceState == .processing {
+                HStack(spacing: 4) {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                    Text("Thinking...")
+                        .font(.system(size: 11))
+                        .foregroundColor(DS.Colors.textSecondary)
+                }
+                .padding(.top, 4)
+            }
         } else if companionManager.allPermissionsGranted && !companionManager.hasSubmittedEmail {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Drop your email to get started.")
@@ -607,8 +626,10 @@ struct CompanionPanelView: View {
             Spacer()
 
             HStack(spacing: 0) {
-                modelOptionButton(label: "Sonnet", modelID: "claude-sonnet-4-6")
-                modelOptionButton(label: "Opus", modelID: "claude-opus-4-6")
+                modelOptionButton(label: "Pro", modelID: "antigravity/gemini-3.1-pro-high")
+                modelOptionButton(label: "Flash", modelID: "antigravity/gemini-3.8-flash-tiered")
+                modelOptionButton(label: "Sonnet", modelID: "antigravity/claude-sonnet-4-6")
+                modelOptionButton(label: "Opus", modelID: "antigravity/claude-opus-4-6-thinking")
             }
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -698,20 +719,6 @@ struct CompanionPanelView: View {
 
             if companionManager.hasCompletedOnboarding {
                 Spacer()
-
-                Button(action: {
-                    companionManager.replayOnboarding()
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "play.circle")
-                            .font(.system(size: 11, weight: .medium))
-                        Text("Watch Onboarding Again")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundColor(DS.Colors.textTertiary)
-                }
-                .buttonStyle(.plain)
-                .pointerCursor()
             }
         }
     }

@@ -581,11 +581,12 @@ struct BlueCursorView: View {
         navigationBubbleSize = .zero
         navigationBubbleScale = 0.5
 
-        // Use custom bubble text from the companion manager (e.g. onboarding demo)
-        // if available, otherwise fall back to a random pointer phrase
-        let pointerPhrase = companionManager.detectedElementBubbleText
-            ?? navigationPointerPhrases.randomElement()
-            ?? "right here!"
+        let pointerPhrase: String = {
+            if let customText = companionManager.detectedElementBubbleText, !customText.isEmpty {
+                return customText
+            }
+            return navigationPointerPhrases.randomElement() ?? "right here!"
+        }()
 
         streamNavigationBubbleCharacter(phrase: pointerPhrase, characterIndex: 0) {
             // All characters streamed — hold for 3 seconds, then fly back

@@ -16,6 +16,7 @@ import SwiftUI
 
 extension Notification.Name {
     static let clickyDismissPanel = Notification.Name("clickyDismissPanel")
+    static let clickyShowPanel = Notification.Name("clickyShowPanel")
 }
 
 /// Custom NSPanel subclass that can become the key window even with
@@ -33,7 +34,7 @@ final class MenuBarPanelManager: NSObject {
 
     private let companionManager: CompanionManager
     private let panelWidth: CGFloat = 320
-    private let panelHeight: CGFloat = 380
+    private let panelHeight: CGFloat = 280
 
     init(companionManager: CompanionManager) {
         self.companionManager = companionManager
@@ -46,6 +47,14 @@ final class MenuBarPanelManager: NSObject {
             queue: .main
         ) { [weak self] _ in
             self?.hidePanel()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .clickyShowPanel,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.showPanel()
         }
     }
 
@@ -126,7 +135,7 @@ final class MenuBarPanelManager: NSObject {
 
     // MARK: - Panel Lifecycle
 
-    private func showPanel() {
+    func showPanel() {
         if panel == nil {
             createPanel()
         }
