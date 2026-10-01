@@ -71,7 +71,7 @@ final class CompanionManager: ObservableObject {
 
     /// Base URL for the Cloudflare Worker proxy. All API requests route
     /// through this so keys never ship in the app binary.
-    private static let workerBaseURL = "http://localhost:20128/v1/chat/completions"
+    private static let workerBaseURL = "http://localhost:20130/v1/chat/completions"
 
     private lazy var claudeAPI: ClaudeAPI = {
         return ClaudeAPI(proxyURL: Self.workerBaseURL, model: selectedModel)

@@ -218,7 +218,7 @@ class ChatViewModel: ObservableObject {
     
     // Uses the existing ClaudeAPI logic under the hood
     private lazy var claudeAPI: ClaudeAPI = {
-        return ClaudeAPI(proxyURL: "http://localhost:20128/v1/chat/completions", model: "antigravity/gemini-3.8-flash-tiered")
+        return ClaudeAPI(proxyURL: "http://localhost:20130/v1/chat/completions", model: "antigravity/gemini-3.8-flash-tiered")
     }()
 
     init() {

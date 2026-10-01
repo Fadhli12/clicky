@@ -41,7 +41,7 @@ class ClaudeAPI {
         request.httpMethod = "POST"
         request.timeoutInterval = 120
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer sk-3f480b5172cb4e50-113328-61c7d171ebfc", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer sk-3f480b5172cb4e50-113328-61c7d171", forHTTPHeaderField: "Authorization")
         return request
     }
 
